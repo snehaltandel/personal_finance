@@ -150,7 +150,7 @@ class Expenses:
         else:
             st.warning("No data available for the selected filters.")
 
-    def show_dashboard(self, breakdown_type):
+    def show_dashboard(self):
         """
         Displays a dashboard with a breakdown of amounts based on the specified breakdown type.
         """
@@ -161,16 +161,10 @@ class Expenses:
             
             filtered_df = self.filtered_df[~self.filtered_df["Category"].isin(self.excluded_categories)]
 
-            if breakdown_type == "Category":
-                summary = filtered_df.groupby("Category")["Amount"].sum().abs().reset_index()
-                summary = summary.sort_values(by="Amount", ascending=False)
-                fig = px.bar(summary, x="Amount", y="Category", orientation='h', 
-                            title="Total Amount by Category", text_auto='.2s')
-            elif breakdown_type == "Account Type":
-                summary = filtered_df.groupby("Account_Type")["Amount"].sum().abs().reset_index()
-                summary = summary.sort_values(by="Amount", ascending=False)
-                fig = px.bar(summary, x="Amount", y="Account_Type", orientation='h', 
-                            title="Total Amount by Account Type", text_auto=True)
+            summary = filtered_df.groupby("Category")["Amount"].sum().abs().reset_index()
+            summary = summary.sort_values(by="Amount", ascending=False)
+            fig = px.bar(summary, x="Amount", y="Category", orientation='h', 
+                        title="Total Amount by Category", text_auto='.2s')
 
             fig.update_layout(xaxis_tickformat='$,.2f', font=dict(size=24))
             
@@ -179,7 +173,7 @@ class Expenses:
 
             if view_option == "Tree Plot":
                 # Display the tree plot
-                tree_fig = px.treemap(summary, path=[breakdown_type], values='Amount', title="Tree Plot of Amounts")
+                tree_fig = px.treemap(summary, path=["Category"], values='Amount', title="Tree Plot of Amounts")
                 tree_fig.update_traces(textinfo="label+value")
                 st.plotly_chart(tree_fig, use_container_width=True)
             elif view_option == "Bar Chart":
@@ -187,7 +181,7 @@ class Expenses:
                 st.plotly_chart(fig, use_container_width=True)
             elif view_option == "Bubble Chart":
                 # Display a simple bubble chart
-                bubble_fig = px.scatter(summary, x="Amount", y=breakdown_type, size="Amount", color=breakdown_type, title="Bubble Chart of Amounts")
+                bubble_fig = px.scatter(summary, x="Amount", y="Category", size="Amount", color="Category", title="Bubble Chart of Amounts")
                 st.plotly_chart(bubble_fig, use_container_width=True)
             elif view_option == "Table View":
                 # Display the table view
@@ -218,7 +212,7 @@ class Expenses:
         else:
             st.warning("No data available for the selected filters.")
 
-    def main(self, breakdown_type):
+    def main(self):
         """
         Main method to display the dashboard.
         This method displays the dashboard with various options including KPI cards,
@@ -230,6 +224,6 @@ class Expenses:
 
         self.need_want_saving()
 
-        self.show_dashboard(breakdown_type)
+        self.show_dashboard()
 
         self.show_full_tabular_view()

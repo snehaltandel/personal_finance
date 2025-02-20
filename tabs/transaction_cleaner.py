@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 import streamlit as st
-from file_uploader import FileUploader
-from historical_category_reference import HistoricalCategoryReference
+from eda.file_uploader import FileUploader
+from tabs.historical_category_reference import HistoricalCategoryReference
 import json
 import boto3
 from io import StringIO

@@ -2,16 +2,14 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from file_uploader import FileUploader
-from transaction_cleaner import TransactionCleaner
-from transaction_editor import TransactionEditor
-from dashboard import Dashboard
+from eda.file_uploader import FileUploader
+from tabs.transaction_cleaner import TransactionCleaner
+from tabs.transaction_editor import TransactionEditor
+from tabs.dashboard import Dashboard
 import boto3
 from io import StringIO
 import json
-
-# Load configuration
-config = json.load(open("assets/config.json"))
+from components.sidebar import Filter
 
 # Function to read uploaded file
 def read_file(uploaded_file):
@@ -23,11 +21,29 @@ def read_file(uploaded_file):
         st.error("Unsupported file format")
         return None
 
+# Load configuration
+config = json.load(open("assets/config.json"))
+
+s3 = boto3.client('s3')
+
+# Define bucket and file name
+bucket_name = config["S3_BUCKET_NAME"]
+file_key = config["ALL_ACCOUNTS_EDITED_FILE_PATH"]
+
+# Read the file from S3
+obj = s3.get_object(Bucket=bucket_name, Key=file_key)
+df = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')))
+df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"], format='mixed').dt.date
+
+filtered_df, df = Filter(df).filter_data()
+
 # Streamlit app
 st.title("Personal Finance Manager")
 
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Import Transactions", "Transaction Cleaner", "Transaction Editor", "Dashboard"])
+
+selected_tab = st.session_state.get("selected_tab")
 
 # Tab 1: Import Transactions
 with tab1:
@@ -44,26 +60,15 @@ with tab2:
 # Tab 3: Trends
 with tab3:
     st.header("Transaction Editor")
-    editor = TransactionEditor()
+    
+    editor = TransactionEditor(filtered_df, df)
     editor.main()
 
 # Tab 4: Dashboard
 with tab4:
-    # st.header("Dashboard")
-    # Load data
-    # Initialize S3 client
-    s3 = boto3.client('s3')
-
-    # Define bucket and file name
-    bucket_name = config["S3_BUCKET_NAME"]
-    file_key = config["ALL_ACCOUNTS_EDITED_FILE_PATH"]
-
-    # Read the file from S3
-    obj = s3.get_object(Bucket=bucket_name, Key=file_key)
-    df = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')))
-    df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"])
-
+    # st.header("Dashboard")    
+    
     # Create an instance of the dashboard
-    dashboard = Dashboard(df)
+    dashboard = Dashboard(filtered_df, df)
     dashboard.main()
     
