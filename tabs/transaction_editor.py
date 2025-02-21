@@ -7,9 +7,16 @@ import boto3
 from io import BytesIO
 import json
 from components.sidebar import Filter
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Initialize S3 client
-s3 = boto3.client('s3')
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+)
 config = json.load(open("assets/config.json"))
 # Define S3 bucket and file paths
 bucket_name = config["S3_BUCKET_NAME"]

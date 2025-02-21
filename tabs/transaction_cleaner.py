@@ -6,13 +6,19 @@ from tabs.historical_category_reference import HistoricalCategoryReference
 import json
 import boto3
 from io import StringIO
+from dotenv import load_dotenv
+load_dotenv()
 
 config = json.load(open("assets/config.json"))
 
 account_types = config["ACCOUNT_TYPES"]
 output_headers = config["OUTPUT_HEADERS"]
 
-s3 = boto3.client('s3')
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+)
 bucket_name = config["S3_BUCKET_NAME"]
 AMOUNT_NEGATIVE_ACCOUNTS = config["AMOUNT_NEGATIVE_ACCOUNTS"]
 ALL_ACCOUNTS_FILE_PATH = config["ALL_ACCOUNTS_FILE_PATH"]

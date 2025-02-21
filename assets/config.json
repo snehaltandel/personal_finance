@@ -1,0 +1,38 @@
+{
+    "ACCOUNT_TYPES": ["WellsFargo_Checking", "Chase", "Amex_Preferred", "Amex_Blue", "Apple"],
+    "HEADERS": {
+        "Amex_Preferred": ["Transaction_Date", "Description", "Card_Member", "Account_Number", "Amount", "Extended_Details", "Appears_On_Statement", "Address", "City_State", "Zip", "Country", "Reference", "Category"],
+        "Chase": ["Transaction_Date", "Post_Date", "Description", "Category", "Type", "Amount", "Memo"],
+        "WellsFargo_Checking": ["Transaction_Date", "Amount", "Comment1", "Comment2", "Description"],
+        "Apple": ["Transaction_Date", "Post_Date", "Description", "Merchant", "Category", "Type", "Amount","Card_Member"]
+    },
+    "OUTPUT_HEADERS": ["Transaction_Date", "Post_Date", "Account_Type", "Amount", "Category", "Type", "Description", "Memo", "Comment1", "Comment2"],
+    "S3_BUCKET_NAME": "our-personal-finance",
+    "AMOUNT_NEGATIVE_ACCOUNTS": ["Amex_Preferred" , "Apple"],
+    "NEEDS_WANTS_SAVINGS_PATH": "data/transformed/needs_wants_savings.csv",
+    "EXCLUDED_CATEGORIES": ["Credit Card Payment", "Income", "Investments", "Refund", "Transfer"],
+    "INCOME_CATEGORIES": ["Income"],
+    "budget_file_key": "data/transformed/budget.csv",
+    "ALL_ACCOUNTS_FILE_PATH": "data/transformed/all_accounts.csv",
+    "ALL_ACCOUNTS_EDITED_FILE_PATH": "data/transformed/all_accounts_edited.csv",
+    "BUDGET_START_DATE": "2024-01-01",
+    "NEEDS": ["Family Maintenance", "Auto & Transport", "Food & Dining", "Home Supplies", 
+    "Groceries", "Personal Care", "Education", "Home Improvement", 
+    "Bills & Utilities", "Medical Bills", "Business Services", "Mortgage & Rent", 
+    "Health & Fitness", "Taxes"],
+    "WANTS": ["Travel & Vacation", "Shopping", "Gifts", "Entertainment"],
+    "SAVINGS": ["Investments"],
+    "CATEGORIES_FILE_PATH": "assets/Categories.xlsx",
+    "CONSOLIDATED_FILE_KEY": "data/transformed/all_accounts_updated.csv",
+    "BACKUP_DIR_KEY": "data/backup/",
+    "CATEGORY_REFERENCE_FILE_PATH": "data/transformed/category_reference.csv",
+    "REPLACEMENT_DICT": {
+        "APPLE": "Apple",
+        "AMEX-PREFERRED": "Amex_Preferred",
+        "CHASE": "Chase",
+        "WELLSFARGO": "WellsFargo_Checking"
+    },
+    "BUDGET_EXCLUDED_CATEGORIES": ["Credit Card Payment", "Income", "Investments", "Refund", "Transfer"]
+
+
+}

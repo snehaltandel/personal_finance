@@ -3,6 +3,9 @@ import pandas as pd
 from io import StringIO
 import botocore
 import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 class HistoricalCategoryReference:
     def __init__(self):
@@ -11,7 +14,11 @@ class HistoricalCategoryReference:
         """
         config = json.load(open("assets/config.json"))
         self.s3_bucket = config["S3_BUCKET_NAME"]
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+        )
         self.category_reference_file = config["CATEGORY_REFERENCE_FILE_PATH"]
         self.all_accounts_file = config["ALL_ACCOUNTS_FILE_PATH"]
         self.all_accounts_edited_file = config["ALL_ACCOUNTS_EDITED_FILE_PATH"]

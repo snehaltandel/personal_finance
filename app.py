@@ -10,6 +10,9 @@ import boto3
 from io import StringIO
 import json
 from components.sidebar import Filter
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Function to read uploaded file
 def read_file(uploaded_file):
@@ -24,7 +27,11 @@ def read_file(uploaded_file):
 # Load configuration
 config = json.load(open("assets/config.json"))
 
-s3 = boto3.client('s3')
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+)
 
 # Define bucket and file name
 bucket_name = config["S3_BUCKET_NAME"]

@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.DS_Store
 
 # Environments
 .env
@@ -8,7 +9,6 @@ venv/
 
 # Exclude eda folder
 eda/
-assets/
 dummy/
 data/
 components/__pycache__/

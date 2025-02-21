@@ -3,7 +3,10 @@ numpy
 openpyxl
 pandas
 plotly
+python-dotenv
 scikit-learn
 seaborn
 scipy
 streamlit
+streamlit-aggrid
+streamlit-plotly-events

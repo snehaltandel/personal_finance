@@ -10,13 +10,20 @@ import plotly.express as px
 from tabs.summary import Summary
 from tabs.budget import SetBudget
 from tabs.needs_wants_savings import NeedsWantsSavings
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 config = json.load(open("assets/config.json"))
 
 # Set page configuration to wide layout
 st.set_page_config(layout="wide")
 
-s3 = boto3.client('s3')
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+)
 bucket_name = config["S3_BUCKET_NAME"]
 budget_file_key = config["budget_file_key"]
 BUDGET_START_DATE = config["BUDGET_START_DATE"]

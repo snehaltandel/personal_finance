@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Streamlit App with EC2, Lambda Start/Stop, and API Gateway"
+
+Resources:
+
+  # EC2 Instance
+  StreamlitEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c104f6f4a5d9d1d5  # Amazon Linux 2 (Change if using Ubuntu)
+      KeyName: on-demand-app-key-pair  # Replace with your actual key pair
+      SecurityGroups: 
+        - !Ref StreamlitSecurityGroup
+      Tags:
+        - Key: Name
+          Value: StreamlitApp
+
+  # Security Group (Allows only your IP)
+  StreamlitSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow SSH and Streamlit access"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 172.1.214.17/32  # Replace with your public IP
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 172.1.214.17/32  # Replace with your public IP
+
+  # IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaEC2StartStopRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaEC2Control
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                Resource: "*"
+
+  # Lambda Function to Start EC2
+  StartEC2Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: StartStreamlitEC2
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          def lambda_handler(event, context):
+              ec2 = boto3.client('ec2')
+              instance_id = "INSTANCE_ID"  # Replace with actual instance ID
+              ec2.start_instances(InstanceIds=[instance_id])
+              return {"message": "EC2 Instance Started"}
+
+  # Lambda Function to Stop EC2
+  StopEC2Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: StopStreamlitEC2
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          def lambda_handler(event, context):
+              ec2 = boto3.client('ec2')
+              instance_id = "INSTANCE_ID"  # Replace with actual instance ID
+              ec2.stop_instances(InstanceIds=[instance_id])
+              return {"message": "EC2 Instance Stopped"}
+
+  # API Gateway for Start/Stop
+  StreamlitAPIGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "StreamlitStartStopAPI"
+
+  StartMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref StreamlitAPIGateway
+      ResourceId: !GetAtt StreamlitAPIGateway.RootResourceId
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StartEC2Lambda.Arn}/invocations"
+
+  StopMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref StreamlitAPIGateway
+      ResourceId: !GetAtt StreamlitAPIGateway.RootResourceId
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StopEC2Lambda.Arn}/invocations"
+
+Outputs:
+  StartAPI:
+    Description: "API Gateway URL to start EC2 instance"
+    Value: !Sub "https://${StreamlitAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/start"
+
+  StopAPI:
+    Description: "API Gateway URL to stop EC2 instance"
+    Value: !Sub "https://${StreamlitAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/stop"
