@@ -65,7 +65,7 @@ class TransactionEditor:
         """
 
         # Define the order of columns to display
-        column_order = ["Transaction_Date", "Description", "Category", "Amount", "Account_Type", "Last_Updated"]
+        column_order = ["Transaction_Date", "Description", "Category", "Amount", "Account_Type"]
 
         Header, Sorting = st.columns(2)
         with Header:
