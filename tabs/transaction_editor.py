@@ -40,8 +40,8 @@ class TransactionEditor:
         self.df = df
         
         # self.consolidated_file_key = CONSOLIDATED_FILE_KEY
-        # self.edited_file_key = ALL_ACCOUNTS_EDITED_FILE_PATH
-        # self.backup_dir_key = BACKUP_DIR_KEY
+        self.edited_file_key = ALL_ACCOUNTS_EDITED_FILE_PATH
+        self.backup_dir_key = BACKUP_DIR_KEY
 
         # try:
         #     edited_obj = s3.get_object(Bucket=bucket_name, Key=self.edited_file_key)
