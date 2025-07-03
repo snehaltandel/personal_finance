@@ -66,13 +66,13 @@ class TransactionEditor:
 
         # Define the order of columns to display
         column_order = ["Transaction_Date", "Description", "Category", "Amount", "Account_Type"]
-
+        sort_order = ["Transaction_Date", "Description", "Category", "Amount", "Account_Type"]
         Header, Sorting = st.columns(2)
         with Header:
             st.write("Edit Transactions:")
         with Sorting:
             # Sort options in a compact layout
-            sort_column, sort_order = st.columns(2)
+            sort_column, sort_type = st.columns(2)
             with sort_column:
                 sort_column = st.selectbox(
                     "Sort by",
@@ -80,15 +80,17 @@ class TransactionEditor:
                     index=0,
                     key="sort_column"
                 )
-            with sort_order:
-                sort_order = st.radio(
+            with sort_type:
+                sort_type = st.radio(
                     "Order",
                     options=["Ascending", "Descending"],
                     index=1,  # Set default to Descending
                     key="sort_order"
                 )
-            ascending = sort_order == "Ascending"
-            self.df = self.df.sort_values(by=sort_column, ascending=ascending)
+            ascending = sort_type == "Ascending"
+            # Update column order with the selected column being the first
+            sort_order = [sort_column] + [col for col in sort_order if col != sort_column]
+            self.df = self.df.sort_values(by=sort_order, ascending=ascending)
         
 
         # Ensure the DataFrame has the required columns
@@ -96,7 +98,7 @@ class TransactionEditor:
             if col not in self.df.columns:
                 self.df[col] = None
 
-        filter_data = self.filtered_df
+        filter_data = self.filtered_df.sort_values(by=sort_order, ascending=ascending)
         # Display the DataFrame with the specified column order
         edited_df = st.data_editor(
             filter_data[column_order],
