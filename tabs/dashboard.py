@@ -10,6 +10,7 @@ import plotly.express as px
 from tabs.summary import Summary
 from tabs.budget import SetBudget
 from tabs.needs_wants_savings import NeedsWantsSavings
+from tabs.forecast import SavingsForecast
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -52,7 +53,15 @@ class Dashboard:
         filtered_df = self.filtered_df
 
         # Create sub-tabs within the Dashboard tab
-        Expense_Tab, Budget_Tab, SetBudget_Tab, Summary_Tab, Trends_Tab, NWS_Tab = st.tabs(["Expense Analysis", "Budget", "Set Budget", "Summary", "Trends", "Set Needs Wants Savings"])
+        Expense_Tab, Budget_Tab, SetBudget_Tab, Summary_Tab, Trends_Tab, NWS_Tab, Forecast_Tab = st.tabs([
+            "Expense Analysis",
+            "Budget",
+            "Set Budget",
+            "Summary",
+            "Trends",
+            "Set Needs Wants Savings",
+            "Financial Forecast",
+        ])
         
         with Expense_Tab:
             # Expense Analysis tab
@@ -180,3 +189,6 @@ class Dashboard:
 
         with NWS_Tab:
             NeedsWantsSavings(self.df).main()
+
+        with Forecast_Tab:
+            SavingsForecast(filtered_df, self.df).main()
