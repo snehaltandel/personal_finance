@@ -38,27 +38,34 @@ class SavingsForecast:
         """Aggregate income, expense, and net savings by month."""
 
         df = self.filtered_df if not self.filtered_df.empty else self.full_df
-        if df.empty:
+        required_columns = {"Transaction_Date", "Category", "Amount"}
+        if df.empty or not required_columns.issubset(df.columns):
             return pd.DataFrame()
 
         df = df.copy()
-        df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"])
+        df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"], errors="coerce")
+        df = df.dropna(subset=["Transaction_Date"])
+        if df.empty:
+            return pd.DataFrame()
         df["YearMonth"] = df["Transaction_Date"].dt.to_period("M")
 
         income_mask = df["Category"].isin(self.income_categories)
-        monthly_income = df.loc[income_mask].groupby("YearMonth")["Amount"].sum()
-        monthly_expenses = df.loc[~income_mask].groupby("YearMonth")["Amount"].sum()
-
-        summary = (
-            pd.concat([monthly_income, monthly_expenses], axis=1)
-            .rename(columns={0: "Income", 1: "Expenses"})
-            .fillna(0)
+        monthly_income = (
+            df.loc[income_mask]
+            .groupby("YearMonth", as_index=True)["Amount"]
+            .sum()
+            .rename("Income")
         )
+        monthly_expenses = (
+            df.loc[~income_mask]
+            .groupby("YearMonth", as_index=True)["Amount"]
+            .sum()
+            .rename("Expenses")
+        )
+
+        summary = pd.concat([monthly_income, monthly_expenses], axis=1)
+        summary = summary.reindex(columns=["Income", "Expenses"]).fillna(0)
         summary.index.name = "YearMonth"
-        summary = summary.rename(columns={
-            summary.columns[0]: "Income",
-            summary.columns[1]: "Expenses",
-        })
 
         summary["Net_Savings"] = summary["Income"] + summary["Expenses"]
         summary = summary.sort_index()
