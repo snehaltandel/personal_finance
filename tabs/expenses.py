@@ -46,6 +46,28 @@ class Expenses:
         )
         return needs, wants, savings
 
+    def _get_expense_breakdown_df(self):
+        if self.filtered_df.empty:
+            return pd.DataFrame(columns=self.filtered_df.columns)
+
+        needs, wants, _ = self._get_category_type_sets()
+        expense_categories = needs.union(wants)
+        return self.filtered_df[self.filtered_df["Category"].isin(expense_categories)].copy()
+
+    def _get_unmapped_expense_categories(self):
+        if self.filtered_df.empty:
+            return []
+
+        needs, wants, savings = self._get_category_type_sets()
+        mapped_categories = needs.union(wants).union(savings).union(self.income_categories)
+        candidate_df = self.filtered_df[
+            ~self.filtered_df["Category"].isin(self.excluded_categories)
+        ]
+        unmapped_categories = sorted(
+            set(candidate_df["Category"].dropna()) - mapped_categories
+        )
+        return unmapped_categories
+
     def _calculate_bucket_totals(self):
         if self.filtered_df.empty:
             return {
@@ -201,9 +223,18 @@ class Expenses:
 
         if not self.filtered_df.empty:
             st.subheader("Total Amount by Category")
-            st.info(f"NOTE: Categories excluded are {self.excluded_categories}")
-            
-            filtered_df = self.filtered_df[~self.filtered_df["Category"].isin(self.excluded_categories)]
+            filtered_df = self._get_expense_breakdown_df()
+            unmapped_categories = self._get_unmapped_expense_categories()
+
+            st.info(
+                "NOTE: This table includes only categories mapped to Needs or Wants so it matches Total Expenses. "
+                f"Excluded categories are {self.excluded_categories}."
+            )
+            if unmapped_categories:
+                st.warning(
+                    "These categories are not currently mapped to Needs/Wants/Savings and are excluded from Total Expenses: "
+                    + ", ".join(unmapped_categories)
+                )
 
             summary = filtered_df.groupby("Category")["Amount"].sum().abs().reset_index()
             summary = summary.sort_values(by="Amount", ascending=False)
