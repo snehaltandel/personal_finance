@@ -12,6 +12,7 @@ import json
 from components.sidebar import Filter
 import os
 from dotenv import load_dotenv
+from botocore.exceptions import ClientError
 load_dotenv()
 
 # Function to read uploaded file
@@ -38,11 +39,19 @@ bucket_name = config["S3_BUCKET_NAME"]
 file_key = config["ALL_ACCOUNTS_EDITED_FILE_PATH"]
 
 # Read the file from S3
-obj = s3.get_object(Bucket=bucket_name, Key=file_key)
-df = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')))
-df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"], format='mixed').dt.date
+try:
+    obj = s3.get_object(Bucket=bucket_name, Key=file_key)
+    df = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')))
+except ClientError:
+    df = pd.DataFrame()
 
-filtered_df, df = Filter(df).filter_data()
+if "Transaction_Date" in df.columns:
+    df["Transaction_Date"] = pd.to_datetime(df["Transaction_Date"], format='mixed').dt.date
+
+if df.empty:
+    filtered_df = pd.DataFrame()
+else:
+    filtered_df, df = Filter(df).filter_data()
 
 # Streamlit app
 st.title("Personal Finance Manager")

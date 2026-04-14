@@ -29,13 +29,59 @@ class Expenses:
         self.excluded_categories = EXCLUDED_CATEGORIES
         self.income_categories = INCOME_CATEGORIES
 
+    def _load_needs_wants_savings_config(self):
+        obj = s3.get_object(Bucket=bucket_name, Key=NEEDS_WANTS_SAVINGS_PATH)
+        return pd.read_csv(obj["Body"])
+
+    def _get_category_type_sets(self):
+        needs_wants_savings_df = self._load_needs_wants_savings_config()
+        needs = set(
+            needs_wants_savings_df[needs_wants_savings_df["Type"] == "Need"]["Category"].dropna()
+        )
+        wants = set(
+            needs_wants_savings_df[needs_wants_savings_df["Type"] == "Want"]["Category"].dropna()
+        )
+        savings = set(
+            needs_wants_savings_df[needs_wants_savings_df["Type"] == "Saving"]["Category"].dropna()
+        )
+        return needs, wants, savings
+
+    def _calculate_bucket_totals(self):
+        if self.filtered_df.empty:
+            return {
+                "needs_total": 0.0,
+                "wants_total": 0.0,
+                "savings_total": 0.0,
+                "total_expenses": 0.0,
+                "total_income": 0.0,
+            }
+
+        needs, wants, savings = self._get_category_type_sets()
+        categorized_df = self.filtered_df.copy()
+
+        needs_total = abs(categorized_df[categorized_df["Category"].isin(needs)]["Amount"].sum())
+        wants_total = abs(categorized_df[categorized_df["Category"].isin(wants)]["Amount"].sum())
+        savings_total = abs(categorized_df[categorized_df["Category"].isin(savings)]["Amount"].sum())
+        total_income = abs(
+            categorized_df[categorized_df["Category"].isin(self.income_categories)]["Amount"].sum()
+        )
+
+        return {
+            "needs_total": needs_total,
+            "wants_total": wants_total,
+            "savings_total": savings_total,
+            "total_expenses": needs_total + wants_total,
+            "total_income": total_income,
+        }
+
     def show_kpi_cards(self):
         """
         Displays KPI cards for Total Income and Total Expenses.
         """
         if not self.filtered_df.empty:
-            total_expenses = abs(self.filtered_df[~self.filtered_df["Category"].isin(self.excluded_categories)]["Amount"].sum())
-            total_income = abs(self.filtered_df[self.filtered_df["Category"].isin(self.income_categories)]["Amount"].sum())
+            totals = self._calculate_bucket_totals()
+            total_expenses = totals["total_expenses"]
+            total_income = totals["total_income"]
 
             st.markdown(
                 """
@@ -85,21 +131,12 @@ class Expenses:
         """
         Categorizes and displays the total amounts for needs, wants, and savings from the filtered DataFrame.
         """
-        # Fetch the CSV file from S3
-        obj = s3.get_object(Bucket=bucket_name, Key=NEEDS_WANTS_SAVINGS_PATH)
-        needs_wants_savings_df = pd.read_csv(obj['Body'])
-
-        # Extract categories
-        needs = needs_wants_savings_df[needs_wants_savings_df['Type'] == 'Need']['Category'].tolist()
-        wants = needs_wants_savings_df[needs_wants_savings_df['Type'] == 'Want']['Category'].tolist()
-        savings = needs_wants_savings_df[needs_wants_savings_df['Type'] == 'Saving']['Category'].tolist()
-
         if not self.filtered_df.empty:
-            needs_total = abs(self.filtered_df[self.filtered_df["Category"].isin(needs)]["Amount"].sum())
-            wants_total = abs(self.filtered_df[self.filtered_df["Category"].isin(wants)]["Amount"].sum())
-            savings_total = abs(self.filtered_df[self.filtered_df["Category"].isin(savings)]["Amount"].sum())
-
-            total_income = abs(self.filtered_df[self.filtered_df["Category"].isin(self.income_categories)]["Amount"].sum())
+            totals = self._calculate_bucket_totals()
+            needs_total = totals["needs_total"]
+            wants_total = totals["wants_total"]
+            savings_total = totals["savings_total"]
+            total_income = totals["total_income"]
             needs_percentage = (needs_total / total_income) * 100 if total_income > 0 else 0
             wants_percentage = (wants_total / total_income) * 100 if total_income > 0 else 0
             savings_percentage = (savings_total / total_income) * 100 if total_income > 0 else 0

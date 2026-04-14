@@ -7,6 +7,12 @@ __pycache__/
 .venv
 venv/
 
+# Local secrets / scratch files
+txt
+
+# Local notebooks (generated / exploratory)
+notebooks/
+
 # Exclude eda folder
 eda/
 dummy/

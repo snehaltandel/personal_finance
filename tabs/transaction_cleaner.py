@@ -7,6 +7,8 @@ import json
 import boto3
 from io import StringIO
 from dotenv import load_dotenv
+from tabs.amount_utils import normalize_amount_series
+from tabs.transaction_service import TransactionService
 load_dotenv()
 
 config = json.load(open("assets/config.json"))
@@ -33,6 +35,7 @@ class TransactionCleaner:
             data_dir (str): The directory where the data files are stored. Defaults to "data".
         """
         self.data_dir = data_dir
+        self.transaction_service = TransactionService(data_dir=data_dir)
 
     def list_files(self):
         """
@@ -41,14 +44,7 @@ class TransactionCleaner:
         Returns:
             list: A list of file paths (keys) for CSV files that match the specified account types.
         """
-        file_list = []
-        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=self.data_dir)
-        for obj in response.get('Contents', []):
-            if obj['Key'].endswith('.csv'):
-                account_type = obj['Key'].split("/")[-2]
-                if account_type in account_types:
-                    file_list.append(obj['Key'])
-        return file_list
+        return self.transaction_service.list_source_files()
 
     def read_s3_file(self, file_path):
         """
@@ -86,32 +82,7 @@ class TransactionCleaner:
         Returns:
             None
         """
-        all_data = pd.DataFrame()
-        for file_path in selected_files:
-            df = self.read_s3_file(file_path)
-            account_type = file_path.split("/")[-2]
-            df['Account_Type'] = account_type
-
-            # Multiply Amount by -1 
-            if account_type in AMOUNT_NEGATIVE_ACCOUNTS:
-                df['Amount'] = df['Amount'] * -1
-
-            # Make Amount to be 2 decimal places
-            df['Amount'] = df['Amount'].round(2)
-
-            # Update code to add new columns if missing
-            for header in output_headers:
-                if header not in df.columns:
-                    df[header] = pd.NaT
-            
-            # Update Transaction_Date and Post_Date column to datetime format
-            df['Transaction_Date'] = pd.to_datetime(df['Transaction_Date'], errors='coerce').dt.date
-            df['Post_Date'] = pd.to_datetime(df['Post_Date'], errors='coerce').dt.date
-
-            all_data = pd.concat([all_data, df], ignore_index=True)
-            # Sort data by all columns
-
-            all_data = all_data.sort_values(by=['Transaction_Date', 'Description', 'Amount'], ascending=[False, True, True]).reset_index(drop=True)
+        all_data = self.transaction_service.consolidate_transactions(selected_files)
 
         st.write("Consolidated Data:")
         st.dataframe(all_data)
