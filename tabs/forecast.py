@@ -116,10 +116,10 @@ class SavingsForecast:
             hide_index=True,
             column_config={
                 "Month": st.column_config.DateColumn("Month"),
-                "Income ($)": st.column_config.Column("Income ($)", format="$%0.0f"),
-                "Expenses ($)": st.column_config.Column("Expenses ($)", format="$%0.0f"),
-                "Net Savings ($)": st.column_config.Column("Net Savings ($)", format="$%0.0f"),
-                "3-Month Avg Net ($)": st.column_config.Column("3-Month Avg Net ($)", format="$%0.0f"),
+                "Income ($)": st.column_config.NumberColumn("Income ($)", format="$%0.0f"),
+                "Expenses ($)": st.column_config.NumberColumn("Expenses ($)", format="$%0.0f"),
+                "Net Savings ($)": st.column_config.NumberColumn("Net Savings ($)", format="$%0.0f"),
+                "3-Month Avg Net ($)": st.column_config.NumberColumn("3-Month Avg Net ($)", format="$%0.0f"),
             },
         )
 

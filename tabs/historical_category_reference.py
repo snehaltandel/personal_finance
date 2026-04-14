@@ -5,6 +5,8 @@ import botocore
 import json
 import os
 from dotenv import load_dotenv
+from tabs.amount_utils import normalize_amount_series
+from tabs.transaction_service import SOURCE_FILE_COLUMN
 load_dotenv()
 
 class HistoricalCategoryReference:
@@ -77,6 +79,13 @@ class HistoricalCategoryReference:
         """
         self.df = self.read_csv_from_s3(self.category_reference_file)
         self.df = self.df[['Transaction_Date', 'Description', 'Amount', 'Account_Type', 'Category']]
+        self.df['Amount'] = normalize_amount_series(self.df['Amount']).round(2)
+
+        if not self.all_accounts_df.empty and 'Amount' in self.all_accounts_df.columns:
+            self.all_accounts_df['Amount'] = normalize_amount_series(self.all_accounts_df['Amount']).round(2)
+
+        if not self.all_accounts_edited_df.empty and 'Amount' in self.all_accounts_edited_df.columns:
+            self.all_accounts_edited_df['Amount'] = normalize_amount_series(self.all_accounts_edited_df['Amount']).round(2)
 
     def replace_account_types(self):
         """
@@ -144,6 +153,13 @@ class HistoricalCategoryReference:
             None
         """
 
+        transaction_match_columns = ['Transaction_Date', 'Account_Type', 'Description', 'Amount']
+        if (
+            SOURCE_FILE_COLUMN in self.all_accounts_df.columns
+            and SOURCE_FILE_COLUMN in self.all_accounts_edited_df.columns
+        ):
+            transaction_match_columns = [SOURCE_FILE_COLUMN] + transaction_match_columns
+
         # Apply Category from Reference data
         self.all_accounts_df = self.all_accounts_df.merge(
             self.df[['Transaction_Date', 'Account_Type', 'Description', 'Amount', 'Category']],
@@ -171,10 +187,13 @@ class HistoricalCategoryReference:
             self.all_accounts_df = self.all_accounts_df.drop(columns=['Category_df'])
 
             # Apply Transaction level category reference
-            df_ref = self.all_accounts_edited_df[['Transaction_Date', 'Account_Type', 'Description', 'Amount','Category']].drop_duplicates(subset=['Transaction_Date', 'Account_Type', 'Description', 'Amount'])
+            edited_reference_columns = transaction_match_columns + ['Category']
+            df_ref = self.all_accounts_edited_df[edited_reference_columns].drop_duplicates(
+                subset=transaction_match_columns
+            )
             self.all_accounts_df = self.all_accounts_df.merge(
                 df_ref,
-                on=['Transaction_Date', 'Account_Type', 'Description', 'Amount'],
+                on=transaction_match_columns,
                 how='left',
                 suffixes=('', '_df')
             )

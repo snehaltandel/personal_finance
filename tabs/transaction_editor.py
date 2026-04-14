@@ -8,6 +8,7 @@ from io import BytesIO
 import json
 from components.sidebar import Filter
 from dotenv import load_dotenv
+from tabs.transaction_service import SOURCE_FILE_COLUMN
 load_dotenv()
 
 
@@ -59,6 +60,21 @@ class TransactionEditor:
         #     except s3.exceptions.NoSuchKey:
         #         self.df = pd.DataFrame()
 
+    def _build_row_id(self, df):
+        row_id_parts = [
+            df["Transaction_Date"].astype("string"),
+            df["Description"].astype("string"),
+            df["Amount"].astype("string"),
+            df["Account_Type"].astype("string"),
+        ]
+        if SOURCE_FILE_COLUMN in df.columns:
+            row_id_parts.append(df[SOURCE_FILE_COLUMN].astype("string"))
+
+        row_id = row_id_parts[0]
+        for part in row_id_parts[1:]:
+            row_id = row_id.str.cat(part, sep="|")
+        return row_id
+
     def main(self):
         """
         Displays a form for editing transactions and provides options to save changes, refresh, or backup the data.
@@ -90,16 +106,22 @@ class TransactionEditor:
             ascending = sort_type == "Ascending"
             # Update column order with the selected column being the first
             sort_order = [sort_column] + [col for col in sort_order if col != sort_column]
-            self.df = self.df.sort_values(by=sort_order, ascending=ascending)
         
 
         # Ensure the DataFrame has the required columns
         for col in column_order:
             if col not in self.df.columns:
                 self.df[col] = None
+            if col not in self.filtered_df.columns:
+                self.filtered_df[col] = None
 
+        self.df = self.df.sort_values(by=sort_order, ascending=ascending)
         filter_data = self.filtered_df.sort_values(by=sort_order, ascending=ascending)
         # Display the DataFrame with the specified column order
+        filter_data = filter_data.copy()
+        filter_data["Row_Id"] = self._build_row_id(filter_data)
+        filter_data = filter_data.set_index("Row_Id")
+
         edited_df = st.data_editor(
             filter_data[column_order],
             num_rows="dynamic", 
@@ -112,15 +134,17 @@ class TransactionEditor:
                 required=True
             )
             },
-            hide_index=False)
+            hide_index=True)
 
         # Merge edited_df back into self.df
-        self.df = self.df.set_index(['Transaction_Date', 'Description', 'Amount', 'Account_Type'])
-        edited_df = edited_df.set_index(['Transaction_Date', 'Description', 'Amount', 'Account_Type'])
+        self.df = self.df.copy()
+        self.df["Row_Id"] = self._build_row_id(self.df)
+        self.df = self.df.set_index("Row_Id")
         combined_df = self.df.join(edited_df['Category'], rsuffix='_edited', how='left')
         combined_df['Category'] = combined_df['Category_edited'].combine_first(combined_df['Category'])
         combined_df.drop(columns=['Category_edited'], inplace=True)
         self.df = combined_df.reset_index()
+        self.df = self.df.drop(columns=["Row_Id"])
         # st.dataframe(self.df)
 
         col1, col2, col3 = st.columns(3)
